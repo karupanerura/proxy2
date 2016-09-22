@@ -18,6 +18,11 @@ from cStringIO import StringIO
 from subprocess import Popen, PIPE
 from HTMLParser import HTMLParser
 
+try:
+    import brotli
+    HAS_BROTLI = True
+except ImportError:
+    HAS_BROTLI = False
 
 def with_color(c, s):
     return "\x1b[%dm%s\x1b[0m" % (c, s)
@@ -208,6 +213,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             data = io.getvalue()
         elif encoding == 'deflate':
             data = zlib.compress(text)
+        elif HAS_BROTLI and encoding == 'br':
+            data = brotli.compress(text)
         else:
             raise Exception("Unknown Content-Encoding: %s" % encoding)
         return data
@@ -224,6 +231,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 text = zlib.decompress(data)
             except zlib.error:
                 text = zlib.decompress(data, -zlib.MAX_WBITS)
+        elif HAS_BROTLI and encoding == 'br':
+            text = brotli.decompress(data)
         else:
             raise Exception("Unknown Content-Encoding: %s" % encoding)
         return text
